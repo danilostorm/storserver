@@ -1,0 +1,18 @@
+{
+  "key": "ets2",
+  "name": "Euro Truck Simulator 2 Dedicated Server",
+  "enabled": false,
+  "installer": "steamcmd",
+  "steam_app_id": 1948160,
+  "image": "storserver/ets2:pending",
+  "command": null,
+  "environment": {},
+  "ports": [
+    { "container": 27015, "protocol": "udp", "role": "game" },
+    { "container": 27016, "protocol": "udp", "role": "query" }
+  ],
+  "volumes": [
+    { "container": "/serverdata", "host_subdir": "serverdata", "mode": "rw" }
+  ],
+  "notes": "Catalog entry only. Enable after SCS token/config generation and networking are automated and tested."
+}
