@@ -38,6 +38,20 @@ class NodeOut(BaseModel):
     enabled: bool
 
 
+class NodeStatusOut(BaseModel):
+    id: int
+    name: str
+    region: str
+    online: bool
+    detail: str | None = None
+    hostname: str | None = None
+    docker_version: str | None = None
+    containers: int | None = None
+    containers_running: int | None = None
+    cpus: int | None = None
+    memory_bytes: int | None = None
+
+
 class ServerCreate(BaseModel):
     name: str
     game_key: str

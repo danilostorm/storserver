@@ -11,10 +11,10 @@
 - [x] Initial React panel
 - [x] Docker node agent
 - [x] Game-template schema
-- [ ] Integration tests
-- [ ] Migrations with Alembic
-- [ ] Server deletion and log UI
-- [ ] Per-node health/status polling
+- [x] Integration tests
+- [x] Migrations with Alembic
+- [x] Server deletion and log UI
+- [x] Per-node health/status polling
 
 ## Milestone 0.2 — first production-quality game runtime
 
