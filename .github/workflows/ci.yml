@@ -14,3 +14,5 @@ jobs:
         run: cp .env.example .env
       - name: Build StorServer images
         run: docker compose build
+      - name: Run backend integration tests
+        run: docker compose run --rm -e PYTHONPATH=/app -v "$PWD/backend/tests:/app/tests:ro" backend pytest -q

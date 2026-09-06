@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 import httpx
@@ -8,9 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .config import settings
-from .database import Base, SessionLocal, engine, get_db
+from .database import SessionLocal, get_db
+from .migrations import run_migrations
 from .models import AuditLog, GameServer, Node, ServerStatus, User, UserRole
-from .schemas import NodeCreate, NodeOut, ServerCreate, ServerOut, TokenOut, UserCreate, UserOut
+from .schemas import NodeCreate, NodeOut, NodeStatusOut, ServerCreate, ServerOut, TokenOut, UserCreate, UserOut
 from .security import create_access_token, get_current_user, hash_password, verify_password
 
 
@@ -25,7 +27,6 @@ def audit(db: Session, user_id: int | None, action: str, detail: str = "") -> No
 
 
 def bootstrap() -> None:
-    Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
         admin = db.scalar(select(User).where(User.email == settings.admin_email))
         if not admin:
@@ -54,6 +55,7 @@ def bootstrap() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    run_migrations()
     bootstrap()
     yield
 
@@ -129,6 +131,37 @@ def create_node(payload: NodeCreate, admin: User = Depends(require_admin), db: S
     return node
 
 
+@app.get("/api/nodes/status", response_model=list[NodeStatusOut])
+async def node_statuses(_: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[NodeStatusOut]:
+    nodes = list(db.scalars(select(Node).where(Node.enabled.is_(True)).order_by(Node.id)).all())
+
+    async def probe(node: Node) -> NodeStatusOut:
+        try:
+            info = await agent_request(node, "GET", "/v1/node")
+            return NodeStatusOut(
+                id=node.id,
+                name=node.name,
+                region=node.region,
+                online=True,
+                hostname=info.get("hostname"),
+                docker_version=info.get("docker_version"),
+                containers=info.get("containers"),
+                containers_running=info.get("containers_running"),
+                cpus=info.get("cpus"),
+                memory_bytes=info.get("memory_bytes"),
+            )
+        except HTTPException as exc:
+            return NodeStatusOut(
+                id=node.id,
+                name=node.name,
+                region=node.region,
+                online=False,
+                detail=str(exc.detail),
+            )
+
+    return list(await asyncio.gather(*(probe(node) for node in nodes)))
+
+
 @app.get("/api/servers", response_model=list[ServerOut])
 def list_servers(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[GameServer]:
     stmt = select(GameServer).order_by(GameServer.id.desc())
@@ -188,10 +221,15 @@ async def create_server(payload: ServerCreate, user: User = Depends(get_current_
     return server
 
 
-async def control_server(server_id: int, action: str, user: User, db: Session) -> GameServer:
+def get_server_for_user(server_id: int, user: User, db: Session) -> GameServer:
     server = db.get(GameServer, server_id)
     if not server or (user.role != UserRole.admin and server.owner_id != user.id):
         raise HTTPException(status_code=404, detail="Server not found")
+    return server
+
+
+async def control_server(server_id: int, action: str, user: User, db: Session) -> GameServer:
+    server = get_server_for_user(server_id, user, db)
     node = db.get(Node, server.node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
@@ -217,3 +255,27 @@ async def stop_server(server_id: int, user: User = Depends(get_current_user), db
 @app.post("/api/servers/{server_id}/restart", response_model=ServerOut)
 async def restart_server(server_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> GameServer:
     return await control_server(server_id, "restart", user, db)
+
+
+@app.get("/api/servers/{server_id}/logs")
+async def server_logs(server_id: int, tail: int = 200, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, str]:
+    server = get_server_for_user(server_id, user, db)
+    node = db.get(Node, server.node_id)
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    tail = max(1, min(tail, 2000))
+    result = await agent_request(node, "GET", f"/v1/servers/{server.id}/logs?tail={tail}")
+    return {"logs": str(result.get("logs", ""))}
+
+
+@app.delete("/api/servers/{server_id}")
+async def delete_server(server_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, int | str]:
+    server = get_server_for_user(server_id, user, db)
+    node = db.get(Node, server.node_id)
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    await agent_request(node, "DELETE", f"/v1/servers/{server.id}")
+    audit(db, user.id, "server.delete", f"server_id={server.id} game={server.game_key}")
+    db.delete(server)
+    db.commit()
+    return {"status": "deleted", "server_id": server_id}
