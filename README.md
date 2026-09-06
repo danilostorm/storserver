@@ -33,17 +33,42 @@ Docker game containers
 
 The controller never needs direct access to remote Docker sockets. Each node runs a StorServer Agent that performs authorized actions locally.
 
-## Development quick start
+## First install
 
-1. Copy `.env.example` to `.env`.
-2. Set a strong `JWT_SECRET`, `ADMIN_PASSWORD` and `AGENT_SHARED_TOKEN`.
-3. Start the stack:
+From the cloned repository:
 
 ```bash
-docker compose up -d --build
+bash ./install.sh
 ```
 
-4. Open the frontend on port `3000` and the API docs on port `8000/docs`.
+The installer creates `.env` automatically when it does not exist, generates random JWT/database/agent/admin secrets, validates Docker Compose, builds the images and starts the stack.
+
+It prints the generated admin credentials at the end. The `.env` file is ignored by Git and is never committed.
+
+Default local endpoints:
+
+- Panel: `http://SERVER-IP:3000`
+- API docs: `http://SERVER-IP:8000/docs`
+
+## Updating
+
+After the first install, normal updates are:
+
+```bash
+bash ./update.sh
+```
+
+This performs a fast-forward pull from `origin/main` and then rebuilds/restarts the StorServer stack while preserving the existing `.env` and persistent Docker volumes.
+
+## Manual development start
+
+If you prefer to manage environment variables manually:
+
+```bash
+cp .env.example .env
+# edit .env
+docker compose up -d --build
+```
 
 ## Project status
 
@@ -52,11 +77,13 @@ Initial platform foundation. The current milestone focuses on authentication, us
 ## Repository layout
 
 ```text
-backend/   FastAPI control plane
-frontend/  React/Vite web panel
-agent/     Remote Docker node agent
-games/     Game template catalog
-docs/      Architecture and deployment notes
+backend/    FastAPI control plane
+frontend/   React/Vite web panel
+agent/      Remote Docker node agent
+games/      Game template catalog
+docs/       Architecture and deployment notes
+install.sh  First-install/bootstrap helper
+update.sh   Update + rebuild helper
 ```
 
 ## Security note
