@@ -1,0 +1,18 @@
+{
+  "key": "cs16",
+  "name": "Counter-Strike 1.6",
+  "enabled": false,
+  "installer": "steamcmd",
+  "steam_app_id": 90,
+  "image": "storserver/cs16:pending",
+  "command": null,
+  "environment": {},
+  "ports": [
+    { "container": 27015, "protocol": "udp", "role": "game" },
+    { "container": 27015, "protocol": "tcp", "role": "rcon" }
+  ],
+  "volumes": [
+    { "container": "/serverdata", "host_subdir": "serverdata", "mode": "rw" }
+  ],
+  "notes": "Catalog entry only. Enable after the StorServer-owned HLDS runtime image and master-server registration tests are complete."
+}
