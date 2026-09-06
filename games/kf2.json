@@ -1,0 +1,20 @@
+{
+  "key": "kf2",
+  "name": "Killing Floor 2",
+  "enabled": false,
+  "installer": "steamcmd",
+  "steam_app_id": 232130,
+  "image": "storserver/kf2:pending",
+  "command": null,
+  "environment": {},
+  "ports": [
+    { "container": 7777, "protocol": "udp", "role": "game" },
+    { "container": 27015, "protocol": "udp", "role": "query" },
+    { "container": 20560, "protocol": "udp", "role": "steam" },
+    { "container": 8080, "protocol": "tcp", "role": "webadmin" }
+  ],
+  "volumes": [
+    { "container": "/serverdata", "host_subdir": "serverdata", "mode": "rw" }
+  ],
+  "notes": "Catalog entry only. Enable after the StorServer-owned KF2 runtime image and query/port integration tests are complete."
+}
