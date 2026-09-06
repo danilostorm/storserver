@@ -44,11 +44,14 @@ services:
     env_file: .env
     environment:
       AGENT_PORT: 9000
+      GAME_TEMPLATES_DIR: /opt/storserver/games
+      STORSERVER_STORAGE_DIR: /var/lib/storserver
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./storage:/var/lib/storserver
+      - ./games:/opt/storserver/games:ro
     ports:
-      - "9000:9000"
+      - "127.0.0.1:9000:9000"
 
   frontend:
     build: ./frontend
