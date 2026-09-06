@@ -1,0 +1,18 @@
+{
+  "key": "ats",
+  "name": "American Truck Simulator Dedicated Server",
+  "enabled": false,
+  "installer": "steamcmd",
+  "steam_app_id": 2239530,
+  "image": "storserver/ats:pending",
+  "command": null,
+  "environment": {},
+  "ports": [
+    { "container": 27015, "protocol": "udp", "role": "game" },
+    { "container": 27016, "protocol": "udp", "role": "query" }
+  ],
+  "volumes": [
+    { "container": "/serverdata", "host_subdir": "serverdata", "mode": "rw" }
+  ],
+  "notes": "Catalog entry only. Enable after SCS token/config generation and networking are automated and tested."
+}
